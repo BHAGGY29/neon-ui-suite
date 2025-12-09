@@ -1,1 +1,10 @@
 project_id = "kedlmsnhuzkyvzzmqbcu"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.send-sos]
+verify_jwt = true
+
+[functions.admin-stats]
+verify_jwt = true
