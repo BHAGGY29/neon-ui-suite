@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { LayoutDashboard, MessageCircle, Heart, Eye, EyeOff, Edit, Trash2, MoreVertical } from "lucide-react";
+import { LayoutDashboard, MessageCircle, Heart, Eye, EyeOff, Edit, Trash2, MoreVertical, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import character1 from "@/assets/character-1.jpg";
 import character4 from "@/assets/character-4.jpg";
 import character5 from "@/assets/character-5.jpg";
@@ -25,6 +29,26 @@ const myCharacters: CreatedCharacter[] = [
 
 const Dashboard = () => {
   const [characters, setCharacters] = useState(myCharacters);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    }
+  };
 
   const toggleVisibility = (id: string) => {
     setCharacters((prev) =>
@@ -46,15 +70,31 @@ const Dashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="mb-8"
       >
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <LayoutDashboard className="w-6 h-6 text-neon-orange animate-glow-pulse" />
-          <h1 className="heading-cyber text-3xl text-foreground">
-            <span className="text-glow-cyan">Creator</span> Dashboard
-          </h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <LayoutDashboard className="w-6 h-6 text-neon-orange animate-glow-pulse" />
+            <h1 className="heading-cyber text-3xl text-foreground">
+              <span className="text-glow-cyan">Creator</span> Dashboard
+            </h1>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </motion.button>
         </div>
-        <p className="text-muted-foreground">Manage your AI characters</p>
+        <p className="text-muted-foreground text-center">Manage your AI characters</p>
+        {user && (
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Logged in as: {user.email}
+          </p>
+        )}
       </motion.div>
 
       {/* Stats Overview */}
