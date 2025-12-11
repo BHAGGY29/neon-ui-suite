@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Phone, MapPin, Clock, Shield, X, Check, Navigation, Loader2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import LocationMap from "@/components/LocationMap";
 import { useRealtimeSOS } from "@/hooks/useRealtimeSOS";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -122,29 +123,14 @@ const Alerts = () => {
             )}
           </div>
         </div>
-        <div className="aspect-video bg-muted/50 rounded-xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-red/5 to-transparent" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            {currentLocation ? (
-              <div className="text-center">
-                <div className="w-4 h-4 bg-neon-red rounded-full mx-auto mb-2 animate-ping" />
-                <p className="text-sm text-foreground font-mono">
-                  {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Accuracy: ±{Math.round(currentLocation.accuracy)}m
-                </p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Getting location...</p>
-              </div>
-            )}
-          </div>
-          <div className="absolute bottom-2 left-2 right-2 glass rounded-lg p-2 text-xs text-muted-foreground">
-            📍 Real-time location will be shared with trusted contacts during SOS
-          </div>
+        <LocationMap
+          latitude={currentLocation?.latitude}
+          longitude={currentLocation?.longitude}
+          trackLive={true}
+          className="h-[250px]"
+        />
+        <div className="mt-2 glass rounded-lg p-2 text-xs text-muted-foreground">
+          📍 Real-time location will be shared with trusted contacts during SOS
         </div>
       </motion.div>
 

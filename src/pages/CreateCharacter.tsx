@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, Wand2, Save, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Upload, Wand2, Save, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const personalityTags = [
   "Friendly", "Mysterious", "Playful", "Serious", "Romantic", "Adventurous",
@@ -22,6 +26,12 @@ const categoryTags = [
 ];
 
 const CreateCharacter = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  
   const [formData, setFormData] = useState({
     name: "",
     gender: "",
@@ -50,6 +60,79 @@ const CreateCharacter = () => {
     }));
   };
 
+  const handleAIGenerate = async () => {
+    if (!user) {
+      toast.error("Please login to generate characters");
+      navigate("/auth");
+      return;
+    }
+
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a description for your character");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-character", {
+        body: {
+          userId: user.id,
+          prompt: aiPrompt,
+          category: formData.categories[0] || "Original",
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.character) {
+        toast.success(`Character "${data.character.name}" created!`);
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      toast.error(error.message || "Failed to generate character");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleManualSave = async () => {
+    if (!user) {
+      toast.error("Please login to create characters");
+      navigate("/auth");
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast.error("Please enter a character name");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from("characters").insert({
+        user_id: user.id,
+        name: formData.name,
+        gender: formData.gender || null,
+        personality: formData.personality.join(", ") || null,
+        voice_type: formData.voice || null,
+        backstory: formData.story || null,
+        tags: formData.categories.length > 0 ? formData.categories : ["Original"],
+        is_public: formData.isPublic,
+      });
+
+      if (error) throw error;
+
+      toast.success("Character created successfully!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Save error:", error);
+      toast.error(error.message || "Failed to create character");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24 px-4 md:px-8 pt-6">
       {/* Header */}
@@ -72,6 +155,46 @@ const CreateCharacter = () => {
         transition={{ delay: 0.2 }}
         className="max-w-2xl mx-auto space-y-8"
       >
+        {/* AI Character Generator */}
+        <div className="space-y-3 p-4 rounded-xl border border-neon-purple/30 bg-neon-purple/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Wand2 className="w-5 h-5 text-neon-purple" />
+            <label className="text-sm font-medium text-foreground">AI Character Generator</label>
+          </div>
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="Describe your character idea... e.g., 'A mysterious cyberpunk hacker with a soft heart'"
+            rows={3}
+            className="input-neon resize-none"
+          />
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleAIGenerate}
+            disabled={isGenerating}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Generate with AI
+              </>
+            )}
+          </motion.button>
+        </div>
+
+        <div className="relative flex items-center justify-center my-4">
+          <div className="border-t border-border flex-1" />
+          <span className="px-4 text-muted-foreground text-sm">or create manually</span>
+          <div className="border-t border-border flex-1" />
+        </div>
+
         {/* Avatar Upload */}
         <div className="flex flex-col items-center">
           <motion.button
@@ -215,11 +338,22 @@ const CreateCharacter = () => {
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
-          className="w-full btn-neon py-4 text-lg font-bold flex items-center justify-center gap-2"
+          onClick={handleManualSave}
+          disabled={isSaving}
+          className="w-full btn-neon py-4 text-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Sparkles className="w-5 h-5" />
-          Create Character
-          <Save className="w-5 h-5" />
+          {isSaving ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              Create Character
+              <Save className="w-5 h-5" />
+            </>
+          )}
         </motion.button>
       </motion.div>
 
