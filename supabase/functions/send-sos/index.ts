@@ -18,12 +18,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    console.log("🚨 SOS Alert triggered for user:", userId);
+
     // Create SOS alert
     const { data: alert, error: alertError } = await supabase
       .from("sos_alerts")
       .insert({
         user_id: userId,
-        risk_level: riskLevel,
+        risk_level: riskLevel || 10,
         source_character: sourceCharacter,
         latitude: location?.latitude,
         longitude: location?.longitude,
@@ -48,7 +50,7 @@ serve(async (req) => {
         });
     }
 
-    // Get trusted contacts
+    // Get trusted contacts with SOS enabled
     const { data: contacts, error: contactsError } = await supabase
       .from("trusted_contacts")
       .select("*")
@@ -68,19 +70,50 @@ serve(async (req) => {
       .maybeSingle();
 
     const userName = profile?.username || "A user";
+    const mapLink = location?.latitude && location?.longitude 
+      ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}`
+      : null;
 
-    // Log the SOS event (in production, you'd send actual emails/SMS)
-    console.log(`🚨 SOS ALERT from ${userName}`);
-    console.log(`Risk Level: ${riskLevel}`);
-    console.log(`Message: ${message}`);
-    console.log(`Location: ${location?.latitude}, ${location?.longitude}`);
-    console.log(`Contacts to notify: ${contacts?.map(c => c.name).join(", ")}`);
+    // Log and send notifications to each contact
+    const notifications: string[] = [];
+    
+    if (contacts && contacts.length > 0) {
+      for (const contact of contacts) {
+        const sosMessage = `
+🚨 EMERGENCY SOS ALERT 🚨
+
+${userName} needs help!
+
+${message ? `Message: ${message}` : ""}
+${location?.latitude ? `📍 Location: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : "📍 Location: Not available"}
+${mapLink ? `🗺️ Map: ${mapLink}` : ""}
+
+Time: ${new Date().toISOString()}
+Risk Level: ${riskLevel || 10}/10
+
+Please respond immediately!
+        `.trim();
+
+        console.log(`📧 Sending notification to ${contact.name}:`);
+        console.log(`   Email: ${contact.email}`);
+        console.log(`   Phone: ${contact.phone}`);
+        console.log(`   Message: ${sosMessage}`);
+        
+        notifications.push(`${contact.name} (${contact.email || contact.phone})`);
+      }
+    }
+
+    console.log("✅ SOS Alert processed successfully");
+    console.log(`   Alert ID: ${alert.id}`);
+    console.log(`   Contacts notified: ${notifications.join(", ") || "None"}`);
 
     return new Response(JSON.stringify({
       success: true,
       alertId: alert.id,
       contactsNotified: contacts?.length || 0,
-      message: `SOS alert created. ${contacts?.length || 0} contacts will be notified.`,
+      notifications,
+      mapLink,
+      message: `🚨 SOS alert sent! ${contacts?.length || 0} contacts notified.`,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

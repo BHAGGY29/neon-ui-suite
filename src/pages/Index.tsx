@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles, Zap, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import CategoryRow from "@/components/CategoryRow";
 import heroBg from "@/assets/hero-bg.jpg";
@@ -39,6 +40,8 @@ const originalCharacters = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen pb-24">
       {/* Hero Section */}
@@ -82,6 +85,7 @@ const Index = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="btn-neon animate-pulse-neon mt-4"
+              onClick={() => navigate("/characters")}
             >
               <span className="flex items-center gap-2">
                 <Zap className="w-5 h-5" />
