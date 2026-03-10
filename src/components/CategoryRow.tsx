@@ -44,6 +44,7 @@ const CategoryRow = ({ title, characters, variant = "default" }: CategoryRowProp
           >
             <CharacterCard
               {...character}
+              personality={character.description}
               variant={variant}
             />
           </motion.div>
