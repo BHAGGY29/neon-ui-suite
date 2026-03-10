@@ -1,14 +1,13 @@
-import { Home, MessageCircle, Search, PlusCircle, LayoutDashboard, Users } from "lucide-react";
+import { Home, Search, Sparkles, MessageCircle, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: MessageCircle, label: "Chat", path: "/chat" },
   { icon: Search, label: "Explore", path: "/explore" },
-  { icon: PlusCircle, label: "Create", path: "/create" },
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Contacts", path: "/contacts" },
+  { icon: Sparkles, label: "Fantasy", path: "/fantasy" },
+  { icon: MessageCircle, label: "Chat", path: "/characters" },
+  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 const BottomNav = () => {
@@ -25,11 +24,11 @@ const BottomNav = () => {
           >
             {({ isActive }) => (
               <>
-                <item.icon 
+                <item.icon
                   className={cn(
                     "nav-icon w-5 h-5 transition-all duration-300",
                     isActive && "text-neon-cyan"
-                  )} 
+                  )}
                 />
                 <span className="text-xs hidden sm:block">{item.label}</span>
               </>
