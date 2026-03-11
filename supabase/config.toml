@@ -4,7 +4,7 @@ project_id = "kedlmsnhuzkyvzzmqbcu"
 verify_jwt = false
 
 [functions.send-sos]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-stats]
 verify_jwt = true
