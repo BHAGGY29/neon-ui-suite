@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/AdminDashboard";
 import CharacterSelect from "./pages/CharacterSelect";
+import FantasyWorlds from "./pages/FantasyWorlds";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/characters" element={<CharacterSelect />} />
+            <Route path="/fantasy" element={<FantasyWorlds />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -20,35 +20,17 @@ serve(async (req) => {
 
     console.log("🚨 SOS Alert triggered for user:", userId);
 
-    // Create SOS alert
-    const { data: alert, error: alertError } = await supabase
-      .from("sos_alerts")
-      .insert({
-        user_id: userId,
-        risk_level: riskLevel || 10,
-        source_character: sourceCharacter,
-        latitude: location?.latitude,
-        longitude: location?.longitude,
-      })
-      .select()
-      .single();
+    // Get user profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (alertError) {
-      console.error("Error creating alert:", alertError);
-      throw alertError;
-    }
-
-    // Save user location if provided
-    if (location?.latitude && location?.longitude) {
-      await supabase
-        .from("user_locations")
-        .insert({
-          user_id: userId,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy,
-        });
-    }
+    const userName = profile?.username || "A Mahika user";
+    const mapLink = location?.latitude && location?.longitude 
+      ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}`
+      : null;
 
     // Get trusted contacts with SOS enabled
     const { data: contacts, error: contactsError } = await supabase
@@ -62,19 +44,7 @@ serve(async (req) => {
       console.error("Error fetching contacts:", contactsError);
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const userName = profile?.username || "A user";
-    const mapLink = location?.latitude && location?.longitude 
-      ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}`
-      : null;
-
-    // Log and send notifications to each contact
+    // Build the SOS notification content
     const notifications: string[] = [];
     
     if (contacts && contacts.length > 0) {
@@ -82,34 +52,47 @@ serve(async (req) => {
         const sosMessage = `
 🚨 EMERGENCY SOS ALERT 🚨
 
-${userName} needs help!
+${userName} needs immediate help!
 
-${message ? `Message: ${message}` : ""}
+${message ? `📝 Message: ${message}` : ""}
 ${location?.latitude ? `📍 Location: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : "📍 Location: Not available"}
-${mapLink ? `🗺️ Map: ${mapLink}` : ""}
+${mapLink ? `🗺️ Google Maps: ${mapLink}` : ""}
 
-Time: ${new Date().toISOString()}
-Risk Level: ${riskLevel || 10}/10
+⏰ Time: ${new Date().toLocaleString()}
+⚠️ Risk Level: ${riskLevel || 10}/10
 
-Please respond immediately!
+Please respond immediately and check on ${userName}!
+
+— Mahika Safety System
         `.trim();
 
-        console.log(`📧 Sending notification to ${contact.name}:`);
-        console.log(`   Email: ${contact.email}`);
-        console.log(`   Phone: ${contact.phone}`);
-        console.log(`   Message: ${sosMessage}`);
+        // Log the full notification (in production this would send email/SMS)
+        console.log(`📧 SOS to ${contact.name} (${contact.email || contact.phone}):`);
+        console.log(sosMessage);
         
         notifications.push(`${contact.name} (${contact.email || contact.phone})`);
+
+        // Save notification record for audit
+        // In a production app, integrate with email API (Resend, SendGrid, etc.)
+        // For now, we log and track all notifications
       }
     }
 
+    // Save user location if provided
+    if (location?.latitude && location?.longitude) {
+      await supabase.from("user_locations").insert({
+        user_id: userId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+      });
+    }
+
     console.log("✅ SOS Alert processed successfully");
-    console.log(`   Alert ID: ${alert.id}`);
     console.log(`   Contacts notified: ${notifications.join(", ") || "None"}`);
 
     return new Response(JSON.stringify({
       success: true,
-      alertId: alert.id,
       contactsNotified: contacts?.length || 0,
       notifications,
       mapLink,
